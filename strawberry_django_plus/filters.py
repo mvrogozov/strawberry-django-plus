@@ -96,7 +96,7 @@ def _apply(filters, queryset: QuerySet, info=UNSET, pk=UNSET) -> QuerySet:
         or not filters._django_type.is_filter
     ):
         return queryset
-
+    raise BaseException('\n\nfilters = ', filters)
     filter_method = getattr(filters, "filter", None)
     if filter_method:
         return filter_method(queryset)
