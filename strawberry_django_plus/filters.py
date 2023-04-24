@@ -45,7 +45,7 @@ def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND):
     for f in fields(filters):
         field_name = f.name
         field_value = _normalize_value(getattr(filters, field_name))
-
+        print('field = ', f)
         # Unset means we are not filtering this. None is still acceptable
         if field_value is UNSET:
             continue
@@ -54,6 +54,7 @@ def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND):
         if field_name in _LOGICAL_EXPRESSIONS and utils.is_strawberry_type(field_value):
             joint_filter_kwargs, _ = _build_filter_kwargs(field_value, _LOGICAL_EXPRESSIONS[field_name])
             filter_kwargs = {**filter_kwargs, **joint_filter_kwargs}
+            print('\n\njoint_filter_kwargs = ', joint_filter_kwargs)
             # filter_methods.extend(joint_filter_methods)
             continue
 
@@ -117,6 +118,7 @@ def _apply(filters, queryset: QuerySet, info=UNSET, pk=UNSET) -> QuerySet:
         else:
             raise BaseException(f"Not implemented case: (filter_key, filter_joint_type, filter_value) {filter_key}, {filter_joint_type}, {filter_value}")
     queryset = queryset.filter(filters_kwargs_expressions)
+    print('\n\nfilters_kwarg...= ', filters_kwargs_expressions)
     for filter_method in filter_methods:
         if _filters.function_allow_passing_info(filter_method):
             queryset = filter_method(queryset=queryset, info=info)
