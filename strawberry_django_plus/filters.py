@@ -99,12 +99,13 @@ def _apply(filters, queryset: QuerySet, info=UNSET, pk=UNSET) -> QuerySet:
         or not filters._django_type.is_filter
     ):
         return queryset
-    #raise BaseException('\n\nfilters = ', filters)
+    print('\n\n_apply  filters = ', filters)
     filter_method = getattr(filters, "filter", None)
     if filter_method:
         return filter_method(queryset)
 
     filter_kwargs, filter_methods = _build_filter_kwargs(filters)
+    print('\nfilter_kwargs = ', filter_kwargs, '\nfilter_methods = ', filter_methods)
     filters_kwargs_expressions = None
     for filter_key_and_joint_type, filter_value in filter_kwargs.items():
         filter_key, filter_joint_type = filter_key_and_joint_type
