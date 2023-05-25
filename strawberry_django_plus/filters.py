@@ -38,6 +38,7 @@ def fields(obj):
 
 # TODO: consider about joint for the methods
 def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND):
+
     filter_kwargs = {}
     filter_methods = []
     django_model = cast(Type[Model], utils.get_django_model(filters))
@@ -57,7 +58,7 @@ def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND):
             
             joint_filter_kwargs, _ = _build_filter_kwargs(field_value, _LOGICAL_EXPRESSIONS[field_name])
             filter_kwargs = {**filter_kwargs, **joint_filter_kwargs}
-            print('\n\njoint_filter_kwargs = ', joint_filter_kwargs)
+            print('\n\njoint_filter_kwargs = ', joint_filter_kwargs, 'tutze filter_kwargs=', filter_kwargs)
             # filter_methods.extend(joint_filter_methods)
             continue
 
