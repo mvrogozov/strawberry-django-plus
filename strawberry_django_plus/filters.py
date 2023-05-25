@@ -85,10 +85,12 @@ def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND):
                 filter_kwargs[(f"{field_name}__{subfield_name}", joint_type)] = subfield_value
 
             filter_methods.extend(subfield_filter_methods)
+            print('\nIF UTILS: filter_kwargs, filter_methods = ', filter_kwargs, filter_methods, '\n**********-')
+            return filter_kwargs, filter_methods
         else:
             print('\n Else tuta field_value= ', field_value)
             filter_kwargs[(field_name, joint_type)] = field_value
-        print('\nIF UTILS: filter_kwargs, filter_methods = ', filter_kwargs, filter_methods, '\n----------')
+        print('\nAFTERvIF UTILS: filter_kwargs, filter_methods = ', filter_kwargs, filter_methods, '\n----------')
 
     print('\nfieldvalue= ', field_value, ' return -> ', filter_kwargs, ' \n')
     return filter_kwargs, filter_methods
