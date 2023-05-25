@@ -37,9 +37,10 @@ def fields(obj):
 
 
 # TODO: consider about joint for the methods
+filter_kwargs = {}
 def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND):
 
-    filter_kwargs = {}
+    
     filter_methods = []
     django_model = cast(Type[Model], utils.get_django_model(filters))
 
