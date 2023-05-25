@@ -88,8 +88,9 @@ def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND):
         else:
             print('\n Else tuta field_value= ', field_value)
             filter_kwargs[(field_name, joint_type)] = field_value
+        print('\nIF UTILS: filter_kwargs, filter_methods = ', filter_kwargs, filter_methods, '\n----------')
 
-    print('\nfieldvalue= ', field_value, ' return -> ', filter_kwargs,' \n')
+    print('\nfieldvalue= ', field_value, ' return -> ', filter_kwargs, ' \n')
     return filter_kwargs, filter_methods
 
 
