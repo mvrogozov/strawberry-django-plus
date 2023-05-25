@@ -37,11 +37,9 @@ def fields(obj):
 
 
 # TODO: consider about joint for the methods
+def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND):
 
-def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND, filter_kwargs=None):
-
-    if not filter_kwargs:
-        filter_kwargs = {}
+    filter_kwargs = {}
     filter_methods = []
     django_model = cast(Type[Model], utils.get_django_model(filters))
 
@@ -58,7 +56,7 @@ def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND, filter_
             print('\nfield_name = ', field_name)
             print('\nfield_value = ', field_value)
             
-            joint_filter_kwargs, _ = _build_filter_kwargs(field_value, _LOGICAL_EXPRESSIONS[field_name], filter_kwargs)
+            joint_filter_kwargs, _ = _build_filter_kwargs(field_value, _LOGICAL_EXPRESSIONS[field_name])
             filter_kwargs = {**filter_kwargs, **joint_filter_kwargs}
             print('\n\njoint_filter_kwargs = ', joint_filter_kwargs, 'tutze filter_kwargs=', filter_kwargs)
             # filter_methods.extend(joint_filter_methods)
@@ -77,7 +75,7 @@ def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND, filter_
             continue
 
         if utils.is_strawberry_type(field_value):
-            subfield_filter_kwargs, subfield_filter_methods = _build_filter_kwargs(field_value, filter_kwargs)
+            subfield_filter_kwargs, subfield_filter_methods = _build_filter_kwargs(field_value)
             print('\n Field_value = ', field_value, ' is subfield', 'subfield_filter_kwargs = ', subfield_filter_kwargs, 'subfield_filter_methods = ', subfield_filter_methods, '\n')
             for subfield_name_and_joint_type, subfield_value in subfield_filter_kwargs.items():
                 subfield_name, _ = subfield_name_and_joint_type
