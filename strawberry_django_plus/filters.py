@@ -55,6 +55,7 @@ def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND):
         if field_name in _LOGICAL_EXPRESSIONS and utils.is_strawberry_type(field_value):
             print('\nfield_name = ', field_name)
             print('\nfield_value = ', field_value)
+            print('\nFILTER_KWARGS = ', filter_kwargs, '\n')
             
             joint_filter_kwargs, _ = _build_filter_kwargs(field_value, _LOGICAL_EXPRESSIONS[field_name])
             filter_kwargs = {**filter_kwargs, **joint_filter_kwargs}
