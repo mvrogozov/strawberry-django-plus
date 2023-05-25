@@ -76,17 +76,20 @@ def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND):
 
         if utils.is_strawberry_type(field_value):
             subfield_filter_kwargs, subfield_filter_methods = _build_filter_kwargs(field_value)
+            print('\n Field_value = ', field_value, ' is subfield', 'subfield_filter_kwargs = ', subfield_filter_kwargs, 'subfield_filter_methods = ', subfield_filter_methods, '\n')
             for subfield_name_and_joint_type, subfield_value in subfield_filter_kwargs.items():
                 subfield_name, _ = subfield_name_and_joint_type
                 if isinstance(subfield_value, Enum):
+                    print('\n Tuta subfield_value= ', subfield_value)
                     subfield_value = subfield_value.value
                 filter_kwargs[(f"{field_name}__{subfield_name}", joint_type)] = subfield_value
 
             filter_methods.extend(subfield_filter_methods)
         else:
+            print('\n Else tuta field_value= ', field_value)
             filter_kwargs[(field_name, joint_type)] = field_value
 
-    print('\nfieldvalue= ', field_value, ' return -> ', filter_kwargs)
+    print('\nfieldvalue= ', field_value, ' return -> ', filter_kwargs,' \n')
     return filter_kwargs, filter_methods
 
 
