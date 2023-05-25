@@ -83,14 +83,14 @@ def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND):
                 if isinstance(subfield_value, Enum):
                     print('\n Tuta subfield_value= ', subfield_value)
                     subfield_value = subfield_value.value
-                filter_kwargs[(f"{field_name}__{subfield_name}", joint_type)] = subfield_value
+                filter_kwargs[(f"{field_name}__{subfield_name}", joint_type, subfield_value)] = subfield_value  #  !!!!!!!!!!!!!!!111
 
             filter_methods.extend(subfield_filter_methods)
             print('\nIF UTILS: filter_kwargs, filter_methods = ', filter_kwargs, filter_methods, '\n**********-')
             #return filter_kwargs, filter_methods
         else:
             print('\n Else tuta field_value= ', field_value)
-            filter_kwargs[(field_name, joint_type)] = field_value
+            filter_kwargs[(field_name, joint_type, field_value)] = field_value   #!!!!!!!!!!!!!!!!
         print('\nAFTERvIF UTILS: filter_kwargs, filter_methods = ', filter_kwargs, filter_methods, '\n----------')
 
     print('\nfieldvalue= ', field_value, ' return -> ', filter_kwargs, ' \n')
@@ -117,7 +117,7 @@ def _apply(filters, queryset: QuerySet, info=UNSET, pk=UNSET) -> QuerySet:
     print('\nfilter_kwargs = ', filter_kwargs, '\nfilter_methods = ', filter_methods)
     filters_kwargs_expressions = None
     for filter_key_and_joint_type, filter_value in filter_kwargs.items():
-        filter_key, filter_joint_type = filter_key_and_joint_type
+        filter_key, filter_joint_type, _ = filter_key_and_joint_type
         if filters_kwargs_expressions is None and filter_joint_type != JointType.NOT:
             filters_kwargs_expressions = Q(**{filter_key: filter_value})
         elif filters_kwargs_expressions is None and filter_joint_type == JointType.NOT:
