@@ -83,14 +83,14 @@ def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND):
                 if isinstance(subfield_value, Enum):
                     print('\n Tuta subfield_value= ', subfield_value)
                     subfield_value = subfield_value.value
-                filter_kwargs[(f"{field_name}__{subfield_name}", joint_type, subfield_value)] = subfield_value  #  !!!!!!!!!!!!!!!111
+                filter_kwargs[(f"{field_name}__{subfield_name}", joint_type, tuple(subfield_value))] = subfield_value  #  !!!!!!!!!!!!!!!111
 
             filter_methods.extend(subfield_filter_methods)
             print('\nIF UTILS: filter_kwargs, filter_methods = ', filter_kwargs, filter_methods, '\n**********-')
             #return filter_kwargs, filter_methods
         else:
             print('\n Else tuta field_value= ', field_value)
-            filter_kwargs[(field_name, joint_type, field_value)] = field_value   #!!!!!!!!!!!!!!!!
+            filter_kwargs[(field_name, joint_type, tuple(subfield_value))] = field_value   #!!!!!!!!!!!!!!!!
         print('\nAFTERvIF UTILS: filter_kwargs, filter_methods = ', filter_kwargs, filter_methods, '\n----------')
 
     print('\nfieldvalue= ', field_value, ' return -> ', filter_kwargs, ' \n')
@@ -112,6 +112,8 @@ def _apply(filters, queryset: QuerySet, info=UNSET, pk=UNSET) -> QuerySet:
     filter_method = getattr(filters, "filter", None)
     if filter_method:
         return filter_method(queryset)
+
+
 
     filter_kwargs, filter_methods = _build_filter_kwargs(filters)
     print('\nfilter_kwargs = ', filter_kwargs, '\nfilter_methods = ', filter_methods)
