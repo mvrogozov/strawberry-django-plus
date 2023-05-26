@@ -46,14 +46,20 @@ def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND):
     for f in fields(filters):
         field_name = f.name
         field_value = _normalize_value(getattr(filters, field_name))
+        print('field = ', f)
         # Unset means we are not filtering this. None is still acceptable
         if field_value is UNSET:
             continue
 
         # Logical expressions
         if field_name in _LOGICAL_EXPRESSIONS and utils.is_strawberry_type(field_value):
+            print('\nfield_name = ', field_name)
+            print('\nfield_value = ', field_value)
+            print('\nFILTER_KWARGS = ', filter_kwargs, '\n')
+            
             joint_filter_kwargs, _ = _build_filter_kwargs(field_value, _LOGICAL_EXPRESSIONS[field_name])
             filter_kwargs = {**filter_kwargs, **joint_filter_kwargs}
+            print('\n\njoint_filter_kwargs = ', joint_filter_kwargs, 'tutze filter_kwargs=', filter_kwargs)
             # filter_methods.extend(joint_filter_methods)
             continue
 
@@ -70,16 +76,25 @@ def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND):
             continue
         if utils.is_strawberry_type(field_value):
             subfield_filter_kwargs, subfield_filter_methods = _build_filter_kwargs(field_value)
+            print('\n Field_value = ', field_value, ' is subfield', 'subfield_filter_kwargs = ', subfield_filter_kwargs, 'subfield_filter_methods = ', subfield_filter_methods, '\n')
             for subfield_name_and_joint_type, subfield_value in subfield_filter_kwargs.items(): 
-                subfield_name, _ , _ = subfield_name_and_joint_type
+                subfield_name, _ , _ = subfield_name_and_joint_type  #!!!!!
                 if isinstance(subfield_value, Enum):
+                    print('\n Tuta subfield_value= ', subfield_value)
                     subfield_value = subfield_value.value
-                filter_kwargs[(f"{field_name}__{subfield_name}", joint_type, tuple(subfield_value))] = subfield_value
+                filter_kwargs[(f"{field_name}__{subfield_name}", joint_type, tuple(subfield_value))] = subfield_value  #  !!!!!!!!!!!!!!!111
 
             filter_methods.extend(subfield_filter_methods)
+            print('\nIF UTILS: filter_kwargs, filter_methods = ', filter_kwargs, filter_methods, '\n**********-')
             #return filter_kwargs, filter_methods
         else:
-            filter_kwargs[(field_name, joint_type, tuple(field_value))] = field_value
+            print('\n Else tuta field_value= ', field_value)
+            filter_kwargs[(field_name, joint_type, tuple(field_value))] = field_value   #!!!!!!!!!!!!!!!!
+        print('\nAFTERvIF UTILS: filter_kwargs, filter_methods = ', filter_kwargs, filter_methods, '\n----------')
+
+
+
+    print('\nfieldvalue= ', field_value, ' return -> ', filter_kwargs, ' \n')
     return filter_kwargs, filter_methods
 
 
@@ -94,10 +109,15 @@ def _apply(filters, queryset: QuerySet, info=UNSET, pk=UNSET) -> QuerySet:
         or not filters._django_type.is_filter
     ):
         return queryset
+    print('\n\n_apply  filters = ', filters)
     filter_method = getattr(filters, "filter", None)
     if filter_method:
         return filter_method(queryset)
+
+
+
     filter_kwargs, filter_methods = _build_filter_kwargs(filters)
+    print('\nfilter_kwargs = ', filter_kwargs, '\nfilter_methods = ', filter_methods)
     filters_kwargs_expressions = None
     for filter_key_and_joint_type, filter_value in filter_kwargs.items():
         filter_key, filter_joint_type, _ = filter_key_and_joint_type
