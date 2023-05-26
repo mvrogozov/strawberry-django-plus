@@ -75,29 +75,31 @@ def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND):
 
         if django_model and field_name not in get_field_names_from_opts(django_model._meta):
             continue
-        if utils.is_strawberry_type(field_value):
-            subfield_filter_kwargs, subfield_filter_methods = _build_filter_kwargs(field_value)[0]
-            print('\n Field_value = ', field_value, ' is subfield', 'subfield_filter_kwargs = ', subfield_filter_kwargs, 'subfield_filter_methods = ', subfield_filter_methods, '\n')
-            for subfield_name_and_joint_type, subfield_value in subfield_filter_kwargs.items(): 
-                subfield_name, _ , _ = subfield_name_and_joint_type  #!!!!!
-                if isinstance(subfield_value, Enum):
-                    print('\n Tuta subfield_value= ', subfield_value)
-                    subfield_value = subfield_value.value
-                if isinstance(subfield_value, Iterable):
-                    filter_kwargs[0][(f"{field_name}__{subfield_name}", joint_type, tuple(subfield_value))] = subfield_value  #  !!!!!!!!!!!!!!!111
-                else:
-                    filter_kwargs[0][(f"{field_name}__{subfield_name}", joint_type, subfield_value)] = subfield_value
-            filter_methods.extend(subfield_filter_methods)
-            print('\nIF UTILS: filter_kwargs, filter_methods = ', filter_kwargs, filter_methods, '\n**********-')
-            #return filter_kwargs, filter_methods
-        else:
-            print('\n Else tuta field_value= ', field_value)
-            if isinstance(field_value, Iterable):
-                filter_kwargs[0][(field_name, joint_type, tuple(field_value))] = field_value   #!!!!!!!!!!!!!!!!
+        try:
+            if utils.is_strawberry_type(field_value):
+                subfield_filter_kwargs, subfield_filter_methods = _build_filter_kwargs(field_value)[0]
+                print('\n Field_value = ', field_value, ' is subfield', 'subfield_filter_kwargs = ', subfield_filter_kwargs, 'subfield_filter_methods = ', subfield_filter_methods, '\n')
+                for subfield_name_and_joint_type, subfield_value in subfield_filter_kwargs.items(): 
+                    subfield_name, _ , _ = subfield_name_and_joint_type  #!!!!!
+                    if isinstance(subfield_value, Enum):
+                        print('\n Tuta subfield_value= ', subfield_value)
+                        subfield_value = subfield_value.value
+                    if isinstance(subfield_value, Iterable):
+                        filter_kwargs.append({(f"{field_name}__{subfield_name}", joint_type, tuple(subfield_value)): subfield_value})  #  !!!!!!!!!!!!!!!111
+                    else:
+                        filter_kwargs.append({(f"{field_name}__{subfield_name}", joint_type, subfield_value): subfield_value})
+                filter_methods.extend(subfield_filter_methods)
+                print('\nIF UTILS: filter_kwargs, filter_methods = ', filter_kwargs, filter_methods, '\n**********-')
+                #return filter_kwargs, filter_methods
             else:
-                filter_kwargs[0][(field_name, joint_type, field_value)] = field_value
-        print('\nAFTERvIF UTILS: filter_kwargs, filter_methods = ', filter_kwargs, filter_methods, '\n----------')
-
+                print('\n Else tuta field_value= ', field_value)
+                if isinstance(field_value, Iterable):
+                    filter_kwargs.append({(field_name, joint_type, tuple(field_value)): field_value})   #!!!!!!!!!!!!!!!!
+                else:
+                    filter_kwargs.append({(field_name, joint_type, field_value): field_value})
+            print('\nAFTERvIF UTILS: filter_kwargs, filter_methods = ', filter_kwargs, filter_methods, '\n----------')
+        except Exception as e:
+            print('\n\n@@@@@@@@@@@@@@@', e , '\n\n##############')
 
 
     print('\nfieldvalue= ', field_value, ' return -> ', filter_kwargs, ' \n')
