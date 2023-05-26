@@ -40,7 +40,7 @@ def fields(obj):
 # TODO: consider about joint for the methods
 def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND):
 
-    filter_kwargs = {}
+    filter_kwargs = []
     filter_methods = []
     django_model = cast(Type[Model], utils.get_django_model(filters))
 
@@ -59,7 +59,7 @@ def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND):
             print('\nFILTER_KWARGS = ', filter_kwargs, '\n')
             
             joint_filter_kwargs, _ = _build_filter_kwargs(field_value, _LOGICAL_EXPRESSIONS[field_name])
-            filter_kwargs = {**filter_kwargs, **joint_filter_kwargs}
+            filter_kwargs.extend(joint_filter_kwargs)  #{**filter_kwargs, **joint_filter_kwargs}
             print('\n\njoint_filter_kwargs = ', joint_filter_kwargs, 'tutze filter_kwargs=', filter_kwargs)
             # filter_methods.extend(joint_filter_methods)
             continue
@@ -76,7 +76,7 @@ def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND):
         if django_model and field_name not in get_field_names_from_opts(django_model._meta):
             continue
         if utils.is_strawberry_type(field_value):
-            subfield_filter_kwargs, subfield_filter_methods = _build_filter_kwargs(field_value)
+            subfield_filter_kwargs, subfield_filter_methods = _build_filter_kwargs(field_value)[0]
             print('\n Field_value = ', field_value, ' is subfield', 'subfield_filter_kwargs = ', subfield_filter_kwargs, 'subfield_filter_methods = ', subfield_filter_methods, '\n')
             for subfield_name_and_joint_type, subfield_value in subfield_filter_kwargs.items(): 
                 subfield_name, _ , _ = subfield_name_and_joint_type  #!!!!!
@@ -84,18 +84,18 @@ def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND):
                     print('\n Tuta subfield_value= ', subfield_value)
                     subfield_value = subfield_value.value
                 if isinstance(subfield_value, Iterable):
-                    filter_kwargs[(f"{field_name}__{subfield_name}", joint_type, tuple(subfield_value))] = subfield_value  #  !!!!!!!!!!!!!!!111
+                    filter_kwargs[0][(f"{field_name}__{subfield_name}", joint_type, tuple(subfield_value))] = subfield_value  #  !!!!!!!!!!!!!!!111
                 else:
-                    filter_kwargs[(f"{field_name}__{subfield_name}", joint_type, subfield_value)] = subfield_value
+                    filter_kwargs[0][(f"{field_name}__{subfield_name}", joint_type, subfield_value)] = subfield_value
             filter_methods.extend(subfield_filter_methods)
             print('\nIF UTILS: filter_kwargs, filter_methods = ', filter_kwargs, filter_methods, '\n**********-')
             #return filter_kwargs, filter_methods
         else:
             print('\n Else tuta field_value= ', field_value)
             if isinstance(field_value, Iterable):
-                filter_kwargs[(field_name, joint_type, tuple(field_value))] = field_value   #!!!!!!!!!!!!!!!!
+                filter_kwargs[0][(field_name, joint_type, tuple(field_value))] = field_value   #!!!!!!!!!!!!!!!!
             else:
-                filter_kwargs[(field_name, joint_type, field_value)] = field_value
+                filter_kwargs[0][(field_name, joint_type, field_value)] = field_value
         print('\nAFTERvIF UTILS: filter_kwargs, filter_methods = ', filter_kwargs, filter_methods, '\n----------')
 
 
@@ -125,7 +125,7 @@ def _apply(filters, queryset: QuerySet, info=UNSET, pk=UNSET) -> QuerySet:
     filter_kwargs, filter_methods = _build_filter_kwargs(filters)
     print('\nfilter_kwargs = ', filter_kwargs, '\nfilter_methods = ', filter_methods)
     filters_kwargs_expressions = None
-    for filter_key_and_joint_type, filter_value in filter_kwargs.items():
+    for filter_key_and_joint_type, filter_value in filter_kwargs[0].items():
         filter_key, filter_joint_type, _ = filter_key_and_joint_type
         if filters_kwargs_expressions is None and filter_joint_type != JointType.NOT:
             filters_kwargs_expressions = Q(**{filter_key: filter_value})
