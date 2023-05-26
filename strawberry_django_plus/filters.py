@@ -1,4 +1,5 @@
 from enum import Enum
+from collections.abc import Iterable
 from typing import Any, Callable, Optional, Sequence, Type, TypeVar, Dict, List, cast
 
 from django.db.models.base import Model
@@ -83,14 +84,19 @@ def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND):
                     if isinstance(subfield_value, Enum):
                         print('\n Tuta subfield_value= ', subfield_value)
                         subfield_value = subfield_value.value
-                    filter_kwargs[(f"{field_name}__{subfield_name}", joint_type, tuple(subfield_value))] = subfield_value  #  !!!!!!!!!!!!!!!111
-
+                    if isinstance(subfield_value, Iterable):
+                        filter_kwargs[(f"{field_name}__{subfield_name}", joint_type, tuple(subfield_value))] = subfield_value  #  !!!!!!!!!!!!!!!111
+                    else:
+                        filter_kwargs[(f"{field_name}__{subfield_name}", joint_type, subfield_value)] = subfield_value
                 filter_methods.extend(subfield_filter_methods)
                 print('\nIF UTILS: filter_kwargs, filter_methods = ', filter_kwargs, filter_methods, '\n**********-')
                 #return filter_kwargs, filter_methods
             else:
                 print('\n Else tuta field_value= ', field_value)
-                filter_kwargs[(field_name, joint_type, tuple(field_value))] = field_value   #!!!!!!!!!!!!!!!!
+                if isinstance(field_value, Iterable):
+                    filter_kwargs[(field_name, joint_type, tuple(field_value))] = field_value   #!!!!!!!!!!!!!!!!
+                else:
+                    filter_kwargs[(field_name, joint_type, field_value)] = field_value
             print('\nAFTERvIF UTILS: filter_kwargs, filter_methods = ', filter_kwargs, filter_methods, '\n----------')
         except Exception as e:
             print('\n\n@@@@@@@@@@@@@@@@\n', e, '\n\n@@@@@@@@@@@@@@@@\n')
