@@ -139,6 +139,7 @@ def _apply(filters, queryset: QuerySet, info=UNSET, pk=UNSET) -> QuerySet:
             filters_kwargs_expressions &= ~Q(**{filter_key: filter_value})
         else:
             raise BaseException(f"Not implemented case: (filter_key, filter_joint_type, filter_value) {filter_key}, {filter_joint_type}, {filter_value}")
+    print('\n\n###### fke-> ', filters_kwargs_expressions, '\n')
     queryset = queryset.filter(filters_kwargs_expressions)
     #raise BaseException('\n\nfilters_kwarg...= ', filters_kwargs_expressions)
     for filter_method in filter_methods:
