@@ -130,8 +130,10 @@ def _apply(filters, queryset: QuerySet, info=UNSET, pk=UNSET) -> QuerySet:
     filter_kwargs_list, filter_methods = _build_filter_kwargs(filters)
     filter_kwargs = []
     ext_dict = {}
+    print('\nfkw_list = ', filter_kwargs_list, '\n')
     try:
         for item in filter_kwargs_list:
+            print('\nitem= ', item , '\n')
             if isinstance(item, dict):
                 ext_dict = {**ext_dict, **item}
             else:
@@ -141,6 +143,8 @@ def _apply(filters, queryset: QuerySet, info=UNSET, pk=UNSET) -> QuerySet:
                     ext_dict = {**ext_dict, **inner_item}
                 filter_kwargs.append(ext_dict)
                 ext_dict = {}
+        if not filter_kwargs:
+            filter_kwargs.append(ext_dict)
     except Exception as e:
         print('------------> ', e)
     print('fkw = ', filter_kwargs, '\n\n')
