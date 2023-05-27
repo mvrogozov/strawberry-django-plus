@@ -136,12 +136,14 @@ def _apply(filters, queryset: QuerySet, info=UNSET, pk=UNSET) -> QuerySet:
                 ext_dict = {**ext_dict, **item}
             else:
                 filter_kwargs.append(ext_dict)
-                ext_dict = {k: v for k, v in item[0].items()}
+                ext_dict = {}
+                for inner_item in item:
+                    ext_dict = {**ext_dict, **inner_item}
                 filter_kwargs.append(ext_dict)
                 ext_dict = {}
     except Exception as e:
         print('------------> ', e)
-    print('fkw = ', filter_kwargs)
+    print('fkw = ', filter_kwargs, '\n\n')
     print('APPLY-> ', filter_kwargs, 'fm->', filter_methods)
     filters_kwargs_expressions = None
     total_expressions = None
