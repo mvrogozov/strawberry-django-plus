@@ -38,6 +38,7 @@ def fields(obj):
 
 
 # TODO: consider about joint for the methods
+# TODO: consider about joint for the methods
 def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND):
 
     filter_kwargs = []
@@ -58,9 +59,13 @@ def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND):
             print('\nfield_value = ', field_value)
             print('\nFILTER_KWARGS = ', filter_kwargs, '\n')
             
-            joint_filter_kwargs, _ = _build_filter_kwargs(field_value, _LOGICAL_EXPRESSIONS[field_name])
-            filter_kwargs.extend(joint_filter_kwargs)  #{**filter_kwargs, **joint_filter_kwargs}
-            print('\n\njoint_filter_kwargs = ', joint_filter_kwargs, 'tutze filter_kwargs=', filter_kwargs)
+            joint_filter_kwargs = _build_filter_kwargs(field_value, _LOGICAL_EXPRESSIONS[field_name])[0]
+            print('\n\njoint_filter_kwargs = ', joint_filter_kwargs)
+            if len(joint_filter_kwargs) > 1:
+                filter_kwargs.append(joint_filter_kwargs)  #{**filter_kwargs, **joint_filter_kwargs}
+            else:
+                filter_kwargs.extend(joint_filter_kwargs)
+            print('tutze filter_kwargs=', filter_kwargs)
             # filter_methods.extend(joint_filter_methods)
             continue
 
@@ -77,9 +82,10 @@ def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND):
             continue
         try:
             if utils.is_strawberry_type(field_value):
-                subfield_filter_kwargs, subfield_filter_methods = _build_filter_kwargs(field_value)[0]
+                print('1')
+                subfield_filter_kwargs, subfield_filter_methods = _build_filter_kwargs(field_value)
                 print('\n Field_value = ', field_value, ' is subfield', 'subfield_filter_kwargs = ', subfield_filter_kwargs, 'subfield_filter_methods = ', subfield_filter_methods, '\n')
-                for subfield_name_and_joint_type, subfield_value in subfield_filter_kwargs.items(): 
+                for subfield_name_and_joint_type, subfield_value in subfield_filter_kwargs[0].items(): 
                     subfield_name, _ , _ = subfield_name_and_joint_type  #!!!!!
                     if isinstance(subfield_value, Enum):
                         print('\n Tuta subfield_value= ', subfield_value)
@@ -105,7 +111,6 @@ def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND):
     print('\nfieldvalue= ', field_value, ' return -> ', filter_kwargs, ' \n')
     return filter_kwargs, filter_methods
 
-
 def _apply(filters, queryset: QuerySet, info=UNSET, pk=UNSET) -> QuerySet:
     if pk is not UNSET:
         queryset = queryset.filter(pk=pk)
@@ -117,41 +122,72 @@ def _apply(filters, queryset: QuerySet, info=UNSET, pk=UNSET) -> QuerySet:
         or not filters._django_type.is_filter
     ):
         return queryset
-    print('\n\n_apply  filters = ', filters)
+
     filter_method = getattr(filters, "filter", None)
     if filter_method:
         return filter_method(queryset)
 
-
-
-    filter_kwargs, filter_methods = _build_filter_kwargs(filters)
-    print('\nfilter_kwargs = ', filter_kwargs, '\nfilter_methods = ', filter_methods)
+    filter_kwargs_list, filter_methods = _build_filter_kwargs(filters)
+    filter_kwargs = []
+    ext_dict = {}
+    try:
+        for item in filter_kwargs_list:
+            if isinstance(item, dict):
+                ext_dict = {**ext_dict, **item}
+            else:
+                filter_kwargs.append(ext_dict)
+                ext_dict = {k: v for k, v in item[0].items()}
+                filter_kwargs.append(ext_dict)
+                ext_dict = {}
+    except Exception as e:
+        print('------------> ', e)
+    print('fkw = ', filter_kwargs)
+    print('APPLY-> ', filter_kwargs, 'fm->', filter_methods)
     filters_kwargs_expressions = None
-    for filter_key_and_joint_type, filter_value in filter_kwargs[0].items():
-        filter_key, filter_joint_type, _ = filter_key_and_joint_type
-        if filters_kwargs_expressions is None and filter_joint_type != JointType.NOT:
-            filters_kwargs_expressions = Q(**{filter_key: filter_value})
-        elif filters_kwargs_expressions is None and filter_joint_type == JointType.NOT:
-            filters_kwargs_expressions = ~Q(**{filter_key: filter_value})
-        elif not(filters_kwargs_expressions is None) and filter_joint_type == JointType.AND:
-            filters_kwargs_expressions &= Q(**{filter_key: filter_value})
-        elif not(filters_kwargs_expressions is None) and filter_joint_type == JointType.OR:
-            filters_kwargs_expressions |= Q(**{filter_key: filter_value})
-        elif not(filters_kwargs_expressions is None) and filter_joint_type == JointType.NOT:
-            filters_kwargs_expressions &= ~Q(**{filter_key: filter_value})
-        else:
-            raise BaseException(f"Not implemented case: (filter_key, filter_joint_type, filter_value) {filter_key}, {filter_joint_type}, {filter_value}")
-    print('\n\n###### fke-> ', filters_kwargs_expressions, '\n', 'type= ', type(filters_kwargs_expressions))
-    #filters_kwargs_expressions = (AND: (OR: (AND: ('lexeme__name__in', ['шиповникъ']), ('function__name__iexact', 'медицина')), (AND: ('lexeme__name__in', ['фиалка']), ('function__name__iexact', 'декоративная'))))
-    queryset = queryset.filter(filters_kwargs_expressions)
-    #raise BaseException('\n\nfilters_kwarg...= ', filters_kwargs_expressions)
-    for filter_method in filter_methods:
-        if _filters.function_allow_passing_info(filter_method):
-            queryset = filter_method(queryset=queryset, info=info)
+    total_expressions = None
+    size = len(filter_kwargs)
+    try:
+        for i, dictionary in enumerate(filter_kwargs):
+            for filter_key_and_joint_type, filter_value in dictionary.items():
+                filter_key, filter_joint_type, _ = filter_key_and_joint_type
+                if filters_kwargs_expressions is None and filter_joint_type != JointType.NOT:
+                    expr = filter_joint_type
+                    filters_kwargs_expressions = Q(**{filter_key: filter_value})
+                elif filters_kwargs_expressions is None and filter_joint_type == JointType.NOT:
+                    expr = ~filter_joint_type
+                    filters_kwargs_expressions = ~Q(**{filter_key: filter_value})
+                elif not(filters_kwargs_expressions is None) and filter_joint_type == JointType.AND:
+                    filters_kwargs_expressions &= Q(**{filter_key: filter_value})
+                elif not(filters_kwargs_expressions is None) and filter_joint_type == JointType.OR:
+                    filters_kwargs_expressions |= Q(**{filter_key: filter_value})
+                elif not(filters_kwargs_expressions is None) and filter_joint_type == JointType.NOT:
+                    filters_kwargs_expressions &= ~Q(**{filter_key: filter_value})
+                else:
+                    raise BaseException(f"Not implemented case: (filter_key, filter_joint_type, filter_value) {filter_key}, {filter_joint_type}, {filter_value}")
+            
+            if i <= size - 1:
+                    if total_expressions:
+                        if expr == JointType.AND:
+                            total_expressions &= filters_kwargs_expressions
+                        elif expr == JointType.OR:
+                            total_expressions |= filters_kwargs_expressions
+                        elif expr == JointType.NOT:
+                            total_expressions &= ~filters_kwargs_expressions    
 
-        else:
-            queryset = filter_method(queryset=queryset)
 
+            if not total_expressions:
+                total_expressions = filters_kwargs_expressions
+                filters_kwargs_expressions = None
+
+        queryset = queryset.filter(total_expressions)
+        for filter_method in filter_methods:
+            if _filters.function_allow_passing_info(filter_method):
+                queryset = filter_method(queryset=queryset, info=info)
+
+            else:
+                queryset = filter_method(queryset=queryset)
+    except Exception as e:
+        print('$$$$$ ', e)
     return queryset.distinct()
 
 
