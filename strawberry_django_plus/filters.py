@@ -30,6 +30,7 @@ def _normalize_value(value: Any):
     return value
 
 
+#  TODO: refactor
 def fields(obj):
     if hasattr(obj, "_kwargs_order"):
         type_definition_field_index = {field.name: field for field in obj._type_definition.fields}
@@ -55,18 +56,11 @@ def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND):
 
         # Logical expressions
         if field_name in _LOGICAL_EXPRESSIONS and utils.is_strawberry_type(field_value):
-            print('\nfield_name = ', field_name)
-            print('\nfield_value = ', field_value)
-            print('\nFILTER_KWARGS = ', filter_kwargs, '\n')
-            
             joint_filter_kwargs = _build_filter_kwargs(field_value, _LOGICAL_EXPRESSIONS[field_name])[0]
-            print('\n\njoint_filter_kwargs = ', joint_filter_kwargs)
             if len(joint_filter_kwargs) > 1:
                 filter_kwargs.append(joint_filter_kwargs)  #{**filter_kwargs, **joint_filter_kwargs}
             else:
                 filter_kwargs.extend(joint_filter_kwargs)
-            print('tutze filter_kwargs=', filter_kwargs)
-            # filter_methods.extend(joint_filter_methods)
             continue
 
         if isinstance(field_value, Enum):
@@ -80,36 +74,25 @@ def _build_filter_kwargs(filters, joint_type: JointType = JointType.AND):
 
         if django_model and field_name not in get_field_names_from_opts(django_model._meta):
             continue
-        try:
-            if utils.is_strawberry_type(field_value):
-                print('1')
-                subfield_filter_kwargs, subfield_filter_methods = _build_filter_kwargs(field_value)
-                print('\n Field_value = ', field_value, ' is subfield', 'subfield_filter_kwargs = ', subfield_filter_kwargs, 'subfield_filter_methods = ', subfield_filter_methods, '\n')
-                for subfield_name_and_joint_type, subfield_value in subfield_filter_kwargs[0].items(): 
-                    subfield_name, _ , _ = subfield_name_and_joint_type  #!!!!!
-                    if isinstance(subfield_value, Enum):
-                        print('\n Tuta subfield_value= ', subfield_value)
-                        subfield_value = subfield_value.value
-                    if isinstance(subfield_value, Iterable):
-                        filter_kwargs.append({(f"{field_name}__{subfield_name}", joint_type, tuple(subfield_value)): subfield_value})  #  !!!!!!!!!!!!!!!111
-                    else:
-                        filter_kwargs.append({(f"{field_name}__{subfield_name}", joint_type, subfield_value): subfield_value})
-                filter_methods.extend(subfield_filter_methods)
-                print('\nIF UTILS: filter_kwargs, filter_methods = ', filter_kwargs, filter_methods, '\n**********-')
-                #return filter_kwargs, filter_methods
-            else:
-                print('\n Else tuta field_value= ', field_value)
-                if isinstance(field_value, Iterable):
-                    filter_kwargs.append({(field_name, joint_type, tuple(field_value)): field_value})   #!!!!!!!!!!!!!!!!
+        if utils.is_strawberry_type(field_value):
+            print('1')
+            subfield_filter_kwargs, subfield_filter_methods = _build_filter_kwargs(field_value)
+            for subfield_name_and_joint_type, subfield_value in subfield_filter_kwargs[0].items(): 
+                subfield_name, _ , _ = subfield_name_and_joint_type  #!!!!!
+                if isinstance(subfield_value, Enum):
+                    subfield_value = subfield_value.value
+                if isinstance(subfield_value, Iterable):
+                    filter_kwargs.append({(f"{field_name}__{subfield_name}", joint_type, tuple(subfield_value)): subfield_value})
                 else:
-                    filter_kwargs.append({(field_name, joint_type, field_value): field_value})
-            print('\nAFTERvIF UTILS: filter_kwargs, filter_methods = ', filter_kwargs, filter_methods, '\n----------')
-        except Exception as e:
-            print('\n\n@@@@@@@@@@@@@@@', e , '\n\n##############')
-
-
-    print('\nfieldvalue= ', field_value, ' return -> ', filter_kwargs, ' \n')
+                    filter_kwargs.append({(f"{field_name}__{subfield_name}", joint_type, subfield_value): subfield_value})
+            filter_methods.extend(subfield_filter_methods)
+        else:
+            if isinstance(field_value, Iterable):
+                filter_kwargs.append({(field_name, joint_type, tuple(field_value)): field_value})   #!!!!!!!!!!!!!!!!
+            else:
+                filter_kwargs.append({(field_name, joint_type, field_value): field_value})
     return filter_kwargs, filter_methods
+
 
 def _apply(filters, queryset: QuerySet, info=UNSET, pk=UNSET) -> QuerySet:
     if pk is not UNSET:
@@ -126,29 +109,21 @@ def _apply(filters, queryset: QuerySet, info=UNSET, pk=UNSET) -> QuerySet:
     filter_method = getattr(filters, "filter", None)
     if filter_method:
         return filter_method(queryset)
-
     filter_kwargs_list, filter_methods = _build_filter_kwargs(filters)
     filter_kwargs = []
     ext_dict = {}
-    print('\nfkw_list = ', filter_kwargs_list, '\n')
-    try:
-        for item in filter_kwargs_list:
-            print('\nitem= ', item , '\n')
-            if isinstance(item, dict):
-                ext_dict = {**ext_dict, **item}
-            else:
-                filter_kwargs.append(ext_dict)
-                ext_dict = {}
-                for inner_item in item:
-                    ext_dict = {**ext_dict, **inner_item}
-                filter_kwargs.append(ext_dict)
-                ext_dict = {}
-        if not filter_kwargs:
+    for item in filter_kwargs_list:
+        if isinstance(item, dict):
+            ext_dict = {**ext_dict, **item}
+        else:
             filter_kwargs.append(ext_dict)
-    except Exception as e:
-        print('------------> ', e)
-    print('fkw = ', filter_kwargs, '\n\n')
-    print('APPLY-> ', filter_kwargs, 'fm->', filter_methods)
+            ext_dict = {}
+            for inner_item in item:
+                ext_dict = {**ext_dict, **inner_item}
+            filter_kwargs.append(ext_dict)
+            ext_dict = {}
+    if not filter_kwargs:
+        filter_kwargs.append(ext_dict)
     filters_kwargs_expressions = None
     total_expressions = None
     size = len(filter_kwargs)
@@ -170,17 +145,14 @@ def _apply(filters, queryset: QuerySet, info=UNSET, pk=UNSET) -> QuerySet:
                     filters_kwargs_expressions &= ~Q(**{filter_key: filter_value})
                 else:
                     raise BaseException(f"Not implemented case: (filter_key, filter_joint_type, filter_value) {filter_key}, {filter_joint_type}, {filter_value}")
-            
             if i <= size - 1:
-                    if total_expressions:
-                        if expr == JointType.AND:
-                            total_expressions &= filters_kwargs_expressions
-                        elif expr == JointType.OR:
-                            total_expressions |= filters_kwargs_expressions
-                        elif expr == JointType.NOT:
-                            total_expressions &= ~filters_kwargs_expressions    
-
-
+                if total_expressions:
+                    if expr == JointType.AND:
+                        total_expressions &= filters_kwargs_expressions
+                    elif expr == JointType.OR:
+                        total_expressions |= filters_kwargs_expressions
+                    elif expr == JointType.NOT:
+                        total_expressions &= ~filters_kwargs_expressions
             if not total_expressions:
                 total_expressions = filters_kwargs_expressions
                 filters_kwargs_expressions = None
